@@ -6,7 +6,7 @@ class ShopCategories extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.categories = [
       { label: "Makeup",     type: "beauty",      emoji: "💄" },
-      { label: "Hudvård",    type: "skincare",    emoji: "🧴" },
+      { label: "Hudvård",    type: "skin-care",    emoji: "🧴" },
       { label: "Parfym",     type: "fragrances",  emoji: "🌸" },
     ];
   }

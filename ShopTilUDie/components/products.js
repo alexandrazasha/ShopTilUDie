@@ -192,7 +192,7 @@ class ShopProducts extends HTMLElement {
   pretty(type) {
     switch (type) {
       case "beauty": return "Makeup";
-      case "skincare": return "Hudvård";
+      case "skin-care": return "Hudvård";
       case "fragrances": return "Parfym";
       default: return type ?? "";
     }
