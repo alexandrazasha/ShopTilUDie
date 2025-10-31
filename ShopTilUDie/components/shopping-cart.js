@@ -1,273 +1,186 @@
-class ShopShoppingCart extends HTMLElement {
-  constructor() {
-    super();
-    this.attachShadow({ mode: "open" });
-    this.items = []; // Lagrar { product, quantity }
-    this.modalInstance = null;
-    this.itemsTemplate = null; // To store the compiled template
+// shopping-cart.js —  mini-kundvagn (localStorage)
+// - Öppnas/stängs via kundvagnsikonen (#mini-cart-link)
+// - Stängs endast när man klickar utanför panelen
+// - + / − / × uppdaterar utan att stänga panelen
+// - "Gå till kassan" knappen visar bara men har ingen navigering
 
-    // Bind event handlers
-    this.boundHandleAddItem = this.handleAddItem.bind(this);
-    this.handleCartClick = this.handleCartClick.bind(this);
+(() => {
+  const KEY = 'shopping-cart';      // localStorage-nyckel
+  const LINK_ID = 'mini-cart-link'; // ikon i navbaren
+  const PANEL_ID = 'mini-cart-panel';
+  const BADGE_SEL = '.cart-counter';
 
-    // Register a Handlebars helper for formatting currency
-    Handlebars.registerHelper('formatPrice', function(price) {
-      const priceNum = parseFloat(price);
-      return isNaN(priceNum) ? '0.00' : priceNum.toFixed(2);
+// Funktioner som sköter lagringen och prisformat
+// read() läser kundvagnen från localStorage
+// write() sparar och uppdaterar kundvagnen
+// fmt() gör om siffror till SEK
+  const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
+  const write = (items) => { localStorage.setItem(KEY, JSON.stringify(items)); updateBadge(); renderList(); };
+  const fmt = n => new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK' }).format(n);
+
+  // --- Skapar panelen för kundvagnen en gång ---
+  const ensurePanel = () => {
+    if (document.getElementById(PANEL_ID)) return;
+
+    const panel = document.createElement('div');
+    panel.id = PANEL_ID;
+    Object.assign(panel.style, {
+      position: 'fixed',
+      top: '76px',
+      right: '16px',
+      width: '320px',
+      maxHeight: '70vh',
+      overflow: 'auto',
+      background: '#fff',
+      borderRadius: '16px',
+      boxShadow: '0 12px 30px rgba(0,0,0,.2)',
+      padding: '14px',
+      zIndex: '2000',
+      display: 'none'
     });
 
-    Handlebars.registerHelper('multiply', function(a, b) {
-      const numA = parseFloat(a);
-      const numB = parseFloat(b);
-      return (isNaN(numA) || isNaN(numB)) ? 0 : numA * numB;
-    });
-  }
-
-  connectedCallback() {
-    document.addEventListener("cart:add-item", this.boundHandleAddItem);
-
-    // A more robust and synchronous initialization flow
-    this.renderStructure();
-    const modalEl = this.shadowRoot.querySelector('.modal');
-    this.modalInstance = new bootstrap.Modal(modalEl);
-    modalEl.addEventListener('click', this.handleCartClick);
-    this.itemsTemplate = this.compileItemsTemplate();
-
-    this.updateView(); // Render the initial empty state
-  }
-
-  disconnectedCallback() {
-    document.removeEventListener("cart:add-item", this.boundHandleAddItem);
-  }
-
-  // --- CART LOGIC ---
-
-  handleAddItem(event) {
-    const { product, quantity } = event.detail;
-    if (!product || !quantity) return;
-
-    const existingItem = this.items.find(item => item.product.id === product.id);
-
-    if (existingItem) {
-      existingItem.quantity += quantity;
-    } else {
-      this.items.push({ product, quantity });
-    }
-
-    this.updateView();
-    this.dispatchCartUpdate();
-  }
-
-  updateQuantity(productId, change) {
-    const item = this.items.find(item => item.product.id === productId);
-    if (!item) return;
-
-    item.quantity += change;
-
-    if (item.quantity <= 0) {
-      // Remove the item if quantity is zero or less
-      this.items = this.items.filter(item => item.product.id !== productId);
-    }
-
-    this.updateView(); // Ensure the view is always updated
-    this.dispatchCartUpdate();
-  }
-
-  dispatchCartUpdate() {
-    const totalItems = this.items.reduce((sum, item) => sum + item.quantity, 0);
-    document.dispatchEvent(new CustomEvent('cart:updated', {
-      bubbles: true,
-      composed: true,
-      detail: {
-        itemCount: totalItems
-      }
-    }));
-  }
-
-  show() {
-    this.modalInstance?.show();
-  }
-
-  hide() {
-    this.modalInstance?.hide();
-  }
-
-  // --- RENDER LOGIC ---
-
-  renderStructure() {
-    const html = `
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-      <style>
-        /* Make each cart item row responsive */
-        .list-group-item {
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-        .cart-item-img {
-          width: 50px;
-          height: 50px;
-          object-fit: cover;
-        }
-        .quantity-controls button {
-          width: 30px;
-          height: 30px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0;
-        }
-        .cart-item-details {
-          /* Allow product name to wrap if it's too long */
-          flex-grow: 1;
-          flex-shrink: 1;
-        }
-
-        /* Button Overrides */
-        .btn-success, .btn-outline-secondary {
-          background-color: #111827 !important;
-          color: #fff !important;
-          border-color: #111827 !important;
-        }
-        .btn-success:hover, .btn-outline-secondary:hover {
-          background-color: #000 !important;
-          border-color: #000 !important;
-        }
-        .btn-close {
-          background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23111827'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat !important;
-          opacity: 0.75;
-        }
-        .btn-close:hover {
-          opacity: 1;
-        }
-        .btn-close:focus {
-          box-shadow: 0 0 0 0.25rem rgba(17, 24, 39, 0.25);
-        }
-
-        /* Slide-in from right animation */
-        .modal.fade .modal-dialog.modal-dialog-slideout {
-          transform: translate(100%, 0);
-        }
-        .modal.show .modal-dialog.modal-dialog-slideout {
-          transform: translate(0, 0);
-        }
-        .modal-dialog-slideout {
-          min-height: 100%;
-          margin: 0 0 0 auto;
-          background: #fff;
-          transition: transform 0.3s ease-out;
-          max-width: 800px; /* Make the modal wider */
-          width: 100%;
-        }
-        .modal-content {
-          border: none;
-          border-radius: 0;
-        }
-        .modal.fade {
-          transition: opacity 0.3s linear;
-        }
-
-      </style>
-      
-      <div class="modal fade" id="shoppingCartModal" tabindex="-1" aria-labelledby="shoppingCartModalLabel" aria-hidden="true" data-bs-backdrop="true">
-        <div class="modal-dialog modal-lg modal-dialog-slideout">
-          <div class="modal-content h-100">
-            <div class="modal-header">
-              <h2 class="modal-title h4" id="shoppingCartModalLabel">🛒 Kundvagn</h2>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body"></div>
-            <div class="modal-footer"></div>
-          </div>
-        </div>
+    panel.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="m-0">Kundvagn</h6>
+        <button class="btn btn-sm btn-outline-secondary" id="mini-cart-clear">Töm</button>
       </div>
+
+      <div id="mini-cart-items" class="vstack gap-2"></div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <strong>Totalt</strong>
+        <strong id="mini-cart-total">0 kr</strong>
+      </div>
+
+      <button class="btn btn-primary w-100 mt-3" id="mini-cart-checkout">Gå till kassan</button>
     `;
-    this.shadowRoot.innerHTML = html;
-  }
 
-  updateView() {
-    const hasItems = this.items.length > 0;
-    const total = this.items.reduce((sum, item) => {
-      return sum + parseFloat(item.product.price) * item.quantity;
-    }, 0);
+    document.body.appendChild(panel);
 
-    const modalBody = this.shadowRoot.querySelector('.modal-body');
-    const modalFooter = this.shadowRoot.querySelector('.modal-footer');
+    // Gör så att klick inuti kundvagnspanelen inte stänger den
+   // (annars tror sidan att man klickat utanför)
+    panel.addEventListener('click', e => e.stopPropagation());
 
-    if (!modalBody || !modalFooter) return;
-    
-    if (hasItems) {
-      // By creating a deep copy of the items, we ensure Handlebars
-      // treats it as new data and re-renders everything correctly.
-      const itemsCopy = JSON.parse(JSON.stringify(this.items));
-      modalBody.innerHTML = this.itemsTemplate({ items: itemsCopy });
-      
-      // Recalculate total right before rendering the footer to ensure it's always up-to-date.
-      const currentTotal = this.items.reduce((sum, item) => sum + (parseFloat(item.product.price) * item.quantity), 0);
-      modalFooter.innerHTML = `<div class="w-100">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="fw-bold fs-5">Totalt:</span>
-            <span class="fw-bold fs-5">${currentTotal.toFixed(2)} SEK</span>
-          </div>
-          <button class="btn btn-success w-100 mt-3">Gå till kassan</button>
+    // Töm kundvagn
+    panel.querySelector('#mini-cart-clear').addEventListener('click', () => write([]));
+
+    // "Gå till kassan" – ingen navigering
+    panel.querySelector('#mini-cart-checkout').addEventListener('click', (e) => {
+      e.preventDefault();
+      alert('Kassan ingår inte i denna inlämning');
+    });
+  };
+
+  // --- Badge (antal i kundvagn) ---
+  const updateBadge = () => {
+    const badge = document.querySelector(BADGE_SEL);
+    if (!badge) return;
+    const count = read().reduce((sum, it) => sum + (it.qty || 1), 0);
+    badge.textContent = String(count);
+    badge.style.display = count > 0 ? 'inline-block' : 'none';
+  };
+
+  // --- Lista varor i panelen ---
+  const renderList = () => {
+    const box = document.getElementById('mini-cart-items');
+    const totalEl = document.getElementById('mini-cart-total');
+    if (!box || !totalEl) return;
+
+    const items = read();
+
+    if (!items.length) {
+      box.innerHTML = `<div class="text-muted">Inget i kundvagnen ännu.</div>`;
+      totalEl.textContent = fmt(0);
+      return;
+    }
+
+    box.innerHTML = items.map((it, i) => `
+      <div class="d-flex align-items-center gap-2 border rounded p-2">
+        <img src="${it.image || ''}" alt="" style="width:48px;height:48px;object-fit:contain;background:#fff">
+        <div class="flex-fill">
+          <div class="fw-semibold small">${it.title || 'Produkt'}</div>
+          <div class="text-muted small">${fmt(it.price || 0)}</div>
         </div>
-      `;
-      modalFooter.style.display = 'block';
-    } else {
-      modalBody.innerHTML = '<p class="text-muted">Din kundvagn är tom.</p>';
-      modalFooter.innerHTML = '';
-      modalFooter.style.display = 'none';
-    }
-  }
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" data-act="dec" data-i="${i}">−</button>
+          <button class="btn btn-outline-secondary disabled">${it.qty || 1}</button>
+          <button class="btn btn-outline-secondary" data-act="inc" data-i="${i}">+</button>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" data-act="del" data-i="${i}">×</button>
+      </div>
+    `).join('');
 
-  compileItemsTemplate() {
-    const templateString = `
-      <ul class="list-group list-group-flush">
-        {{#each items}}
-          <li class="list-group-item d-flex justify-content-between align-items-center" data-product-id="{{this.product.id}}">
-            <div class="d-flex align-items-center flex-grow-1">
-              <img src="{{this.product.image}}" alt="{{this.product.name}}" class="cart-item-img rounded me-3">
-              <div class="cart-item-details">
-                <div class="fw-bold text-break">{{this.product.name}}</div>
-                <small class="text-muted">{{formatPrice this.product.price}} SEK / st</small>
-              </div>
-            </div>
-            
-            <div class="d-flex align-items-center flex-shrink-0">
-              <div class="d-flex align-items-center quantity-controls me-3">
-                <button class="btn btn-sm btn-outline-secondary" data-action="decrease" data-id="{{this.product.id}}">-</button>
-                <span class="mx-2" style="min-width: 20px; text-align: center;">{{this.quantity}}</span>
-                <button class="btn btn-sm btn-outline-secondary" data-action="increase" data-id="{{this.product.id}}">+</button>
-              </div>
-              <div class="fw-bold me-3" style="min-width: 70px; text-align: right;">{{formatPrice (multiply this.product.price this.quantity)}} SEK</div>
-              <button class="btn-close" aria-label="Remove item" data-action="remove" data-id="{{this.product.id}}"></button>
-            </div>
-          </li>
-        {{/each}}
-      </ul>
-    `;
-    return Handlebars.compile(templateString);
-  }
+    const total = items.reduce((sum, it) => sum + (it.price || 0) * (it.qty || 1), 0);
+    totalEl.textContent = fmt(total);
 
-  handleCartClick(event) {
-    const button = event.target.closest("button[data-action]");
-    if (!button) return;
-  
-    const productId = parseInt(button.dataset.id, 10);
-    const action = button.dataset.action;
-  
-    switch (action) {
-      case "increase":
-        this.updateQuantity(productId, 1);
-        break;
-      case "decrease":
-        this.updateQuantity(productId, -1);
-        break;
-      case "remove":
-        this.updateQuantity(productId, -Infinity); // Triggers removal
-        break;
-    }
-  }
-}
+    // Knappar: + / − / ×
+    box.querySelectorAll('button[data-act]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = +btn.dataset.i;
+        const act = btn.dataset.act;
+        const arr = read();
+        if (!arr[i]) return;
 
-customElements.define("shop-shopping-cart", ShopShoppingCart);
+        if (act === 'inc') arr[i].qty = (arr[i].qty || 1) + 1;
+        if (act === 'dec') arr[i].qty = Math.max(1, (arr[i].qty || 1) - 1);
+        if (act === 'del') arr.splice(i, 1);
+
+        write(arr); // uppdatera + rita om + badge
+      });
+    });
+  };
+
+  // --- Visa/dölj panel ---
+  const showPanel = () => { ensurePanel(); document.getElementById(PANEL_ID).style.display = 'block'; };
+  const hidePanel = () => { const p = document.getElementById(PANEL_ID); if (p) p.style.display = 'none'; };
+  const togglePanel = () => {
+    ensurePanel();
+    const p = document.getElementById(PANEL_ID);
+    p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+  };
+
+  // --- Init ---
+  document.addEventListener('DOMContentLoaded', () => {
+    ensurePanel();
+    updateBadge();
+    renderList();
+
+    // Ikon i navbar → öppna/stäng panelen
+    // We need to listen on the body because the navbar is a web component and its content might not be ready immediately.
+    document.body.addEventListener('click', (e) => {
+      if (e.target.closest(`#${LINK_ID}`)) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePanel();
+      }
+    });
+
+    // Stäng bara när man klickar UTANFÖR panelen
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById(PANEL_ID);
+      if (!panel || panel.style.display === 'none') return;
+
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      const insidePanel = path.includes(panel) || panel.contains(e.target);
+
+      if (!insidePanel) hidePanel();
+    }, true);
+
+    // Synk mellan flikar
+    window.addEventListener('storage', (e) => {
+      if (e.key === KEY) { updateBadge(); renderList(); }
+    });
+  });
+
+  // Lägg till produkt från product-details.js
+  window.addEventListener('AddedToCart', (e) => {
+    const { id, title, price, image, quantity = 1 } = e.detail || {};
+    const arr = read();
+    const i = arr.findIndex(x => x.id === id);
+    if (i >= 0) arr[i].qty = (arr[i].qty || 1) + quantity;
+    else arr.push({ id, title, price, image, qty: quantity });
+    write(arr);
+    showPanel(); // öppna panelen direkt
+  });
+})();
+        

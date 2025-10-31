@@ -23,10 +23,6 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>
     `;
-
-    // Lägg till kundvagnen direkt i body så att modalen fungerar korrekt
-    const cart = document.createElement('shop-shopping-cart');
-    body.appendChild(cart);
   }
 
   // --- Elementreferenser ---

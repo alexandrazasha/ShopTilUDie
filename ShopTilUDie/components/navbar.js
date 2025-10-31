@@ -5,34 +5,13 @@ class ShopNavbar extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    this.itemCount = 0;
-    this.handleCartUpdate = this.handleCartUpdate.bind(this);
-    this.openCartModal = this.openCartModal.bind(this);
   }
 
   connectedCallback() {
-    document.addEventListener('cart:updated', this.handleCartUpdate);
     this.render();
   }
 
-  disconnectedCallback() {
-    document.removeEventListener('cart:updated', this.handleCartUpdate);
-  }
-
-  handleCartUpdate(event) {
-    this.itemCount = event.detail.itemCount;
-    this.render(); // Re-render to update the badge
-  }
-
-  openCartModal(event) {
-    event.preventDefault();
-    const cartComponent = document.querySelector('shop-shopping-cart');
-    if (cartComponent) {
-      cartComponent.show();
-    }
-  }
-
-  render() {
+  async render() {
     this.shadowRoot.innerHTML = `
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
       <style>
@@ -77,12 +56,12 @@ class ShopNavbar extends HTMLElement {
           text-decoration: none;
         }
 
-        .cart-link {
+        #mini-cart-link {
           position: relative;
           cursor: pointer;
         }
 
-        .cart-badge {
+        .cart-counter {
           position: absolute;
           top: -2px;
           right: -12px;
@@ -112,16 +91,15 @@ class ShopNavbar extends HTMLElement {
             <li class="nav-item"><a class="nav-link" href="#">Om oss</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Kontakt</a></li>
             <li class="nav-item">
-              <a class="nav-link cart-link" href="#">🛒${this.itemCount > 0 ? `<span class="badge rounded-pill cart-badge">${this.itemCount}</span>` : ''}</a>
+              <a id="mini-cart-link" class="nav-link" href="#">
+                🛒
+                <span class="badge rounded-pill cart-counter" style="display: none;">0</span>
+              </a>
             </li>
           </ul>
         </div>
       </nav>
     `;
-
-    // Attach event listener after every render to prevent it from being lost
-    const cartLink = this.shadowRoot.querySelector('.cart-link');
-    cartLink.addEventListener('click', this.openCartModal);
   }
 }
 

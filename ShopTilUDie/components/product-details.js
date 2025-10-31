@@ -86,7 +86,7 @@ class ShopProductDetails extends HTMLElement {
               
               <ul class="list-group list-group-flush mb-4">
                 <li class="list-group-item">
-                  <strong>Pris:</strong> <span class="fw-bold fs-5">${formattedPrice}</span>
+                  <strong>Pris:</strong> <span class="fw-bold fs-5">${priceNum.toFixed(2)} ${this.product.currency || 'SEK'}</span>
                 </li>
                 <li class="list-group-item">
                   <strong>Kategori:</strong> ${this.product.product_type || 'Ej specificerad'}
@@ -95,9 +95,9 @@ class ShopProductDetails extends HTMLElement {
                   <strong>Betyg:</strong> ${this.product.rating.toFixed(1)} / 5.0
                 </li>` : ''}
               </ul>
-              
+
               <button class="btn btn-primary btn-lg w-100" id="add-to-cart">
-                🛒 Lägg till i kundvagn (${formattedPrice})
+                🛒 Lägg till i kundvagn
               </button>
             </div>
           </div>
@@ -118,14 +118,19 @@ class ShopProductDetails extends HTMLElement {
             composed: true
         }));
     });
-    
+
     // Bind "Lägg till i kundvagn"-knappen
-    this.shadowRoot.getElementById("add-to-cart").addEventListener("click", () => {
-        // Skicka händelse som kundvagnen lyssnar på
-        this.dispatchEvent(new CustomEvent("cart:add-item", {
+    this.shadowRoot.getElementById("add-to-cart")?.addEventListener("click", () => {
+        // Dispatch the new 'AddedToCart' event that mini-cart.js listens for
+        window.dispatchEvent(new CustomEvent("AddedToCart", {
             bubbles: true,
             composed: true,
-            detail: { product: this.product, quantity: 1 }
+            detail: { 
+              id: this.product.id,
+              title: this.product.name, // Map 'name' to 'title'
+              price: parseFloat(this.product.price),
+              image: this.product.image
+            }
         }));
     });
   }
