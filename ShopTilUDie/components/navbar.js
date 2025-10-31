@@ -11,6 +11,9 @@ class ShopNavbar extends HTMLElement {
     this.render();
   }
 
+  disconnectedCallback() {
+  }
+
   async render() {
     this.shadowRoot.innerHTML = `
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -56,12 +59,12 @@ class ShopNavbar extends HTMLElement {
           text-decoration: none;
         }
 
-        #mini-cart-link {
+        .cart-link {
           position: relative;
           cursor: pointer;
         }
 
-        .cart-counter {
+        .cart-badge {
           position: absolute;
           top: -2px;
           right: -12px;
