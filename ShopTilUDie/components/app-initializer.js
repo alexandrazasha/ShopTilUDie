@@ -1,6 +1,7 @@
 // components/app-initializer.js
 document.addEventListener("DOMContentLoaded", () => {
   const main = document.querySelector("main");
+  const body = document.querySelector("body");
 
   // --- Layout (bootstrap-grid, centrerad) ---
   if (!main.querySelector("shop-categories")) {
@@ -18,15 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
             <section id="product-details-view" class="mb-4" hidden>
               <shop-product-details></shop-product-details>
             </section>
-
-            <!-- Kundvagn -->
-            <section class="mb-4">
-              <shop-shopping-cart></shop-shopping-cart>
-            </section>
           </div>
         </div>
       </div>
     `;
+
+    // Lägg till kundvagnen direkt i body så att modalen fungerar korrekt
+    const cart = document.createElement('shop-shopping-cart');
+    body.appendChild(cart);
   }
 
   // --- Elementreferenser ---

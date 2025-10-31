@@ -5,10 +5,31 @@ class ShopNavbar extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
+    this.itemCount = 0;
+    this.handleCartUpdate = this.handleCartUpdate.bind(this);
+    this.openCartModal = this.openCartModal.bind(this);
   }
 
   connectedCallback() {
+    document.addEventListener('cart:updated', this.handleCartUpdate);
     this.render();
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('cart:updated', this.handleCartUpdate);
+  }
+
+  handleCartUpdate(event) {
+    this.itemCount = event.detail.itemCount;
+    this.render(); // Re-render to update the badge
+  }
+
+  openCartModal(event) {
+    event.preventDefault();
+    const cartComponent = document.querySelector('shop-shopping-cart');
+    if (cartComponent) {
+      cartComponent.show();
+    }
   }
 
   render() {
@@ -56,6 +77,22 @@ class ShopNavbar extends HTMLElement {
           text-decoration: none;
         }
 
+        .cart-link {
+          position: relative;
+          cursor: pointer;
+        }
+
+        .cart-badge {
+          position: absolute;
+          top: -2px;
+          right: -12px;
+          font-size: 0.65rem;
+          line-height: 1;
+          padding: 0.25em 0.4em;
+          background-color: #dc3545; /* Bootstrap danger red */
+          color: white;
+        }
+
         @media (max-width: 768px) {
           .brand {
             font-size: 1.4rem;
@@ -74,12 +111,18 @@ class ShopNavbar extends HTMLElement {
             <li class="nav-item"><a class="nav-link" href="#">Produkter</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Om oss</a></li>
             <li class="nav-item"><a class="nav-link" href="#">Kontakt</a></li>
+            <li class="nav-item">
+              <a class="nav-link cart-link" href="#">🛒${this.itemCount > 0 ? `<span class="badge rounded-pill cart-badge">${this.itemCount}</span>` : ''}</a>
+            </li>
           </ul>
         </div>
       </nav>
     `;
+
+    // Attach event listener after every render to prevent it from being lost
+    const cartLink = this.shadowRoot.querySelector('.cart-link');
+    cartLink.addEventListener('click', this.openCartModal);
   }
 }
 
 customElements.define("shop-navbar", ShopNavbar);
-

@@ -40,6 +40,18 @@ class ShopProductDetails extends HTMLElement {
           height: auto;
           object-fit: contain;
         }
+
+        /* Button Overrides */
+        .btn-primary, .btn-outline-secondary {
+          background-color: #111827 !important;
+          color: #fff !important;
+          border-color: #111827 !important;
+        }
+        .btn-primary:hover, .btn-outline-secondary:hover {
+          background-color: #000 !important;
+          border-color: #000 !important;
+        }
+
       </style>
     `;
 

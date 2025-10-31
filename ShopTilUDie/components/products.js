@@ -42,7 +42,7 @@ class ShopProducts extends HTMLElement {
         name: p.title,
         brand: p.brand || "",
         price: String(p.price),
-        currency: "USD",
+        currency: "SEK",
         image: p.thumbnail,
         description: p.description || "",
         rating: p.rating ?? null,
@@ -93,7 +93,19 @@ class ShopProducts extends HTMLElement {
   }
 
   renderList() {
-    const showSub = this.currentType === "beauty";
+    const context = {
+      prettyCategory: this.pretty(this.currentType),
+      productCount: this.viewProducts.length,
+      showSub: this.currentType === "beauty",
+      products: this.viewProducts,
+      subButtons: [
+        { key: 'alla', label: 'Alla', active: this.currentSub === 'alla' },
+        { key: 'bas', label: 'Bas', active: this.currentSub === 'bas' },
+        { key: 'ogon', label: 'Ögon', active: this.currentSub === 'ogon' },
+        { key: 'lappar', label: 'Läppar', active: this.currentSub === 'lappar' }
+      ]
+    };
+
     const html = `
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <style>
@@ -127,31 +139,29 @@ class ShopProducts extends HTMLElement {
       </style>
       <section>
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h2 class="mb-0">Produkter – ${this.pretty(this.currentType)}</h2>
-          <span class="text-muted small">${this.viewProducts.length} st</span>
+          <h2 class="mb-0">Produkter – {{prettyCategory}}</h2>
+          <span class="text-muted small">{{productCount}} st</span>
         </div>
 
-        ${
-          showSub
-            ? `
-          <div class="mb-3">
-            <div class="btn-group" role="group" aria-label="Underkategorier">
-              ${this.subBtn("alla", "Alla")}
-              ${this.subBtn("bas", "Bas")}
-              ${this.subBtn("ogon", "Ögon")}
-              ${this.subBtn("lappar", "Läppar")}
-            </div>
+        {{#if showSub}}
+        <div class="mb-3">
+          <div class="btn-group" role="group" aria-label="Underkategorier">
+            {{#each subButtons}}
+            <button type="button" class="btn btn-outline-secondary {{#if active}}active{{/if}}" data-sub="{{key}}">{{label}}</button>
+            {{/each}}
           </div>
-        `
-            : ""
-        }
+        </div>
+        {{/if}}
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-          ${this.viewProducts.map((p) => this.card(p)).join("")}
+          {{#each products}}
+            ${this.card()}
+          {{/each}}
         </div>
       </section>
     `;
-    this.shadowRoot.innerHTML = html;
+    const template = Handlebars.compile(html);
+    this.shadowRoot.innerHTML = template(context);
 
     // Bild-fallback
     this.shadowRoot.querySelectorAll(".card-img-top").forEach((img) => {
@@ -184,7 +194,7 @@ class ShopProducts extends HTMLElement {
     });
 
     // Underfilter
-    if (showSub) {
+    if (context.showSub) {
       this.shadowRoot.querySelectorAll("[data-sub]").forEach((btn) => {
         btn.addEventListener("click", () => {
           this.applySub(btn.getAttribute("data-sub"));
@@ -196,29 +206,22 @@ class ShopProducts extends HTMLElement {
   // =======================
   // HJÄLPMETODER
   // =======================
-  card(p) {
-    const brand = p.brand ? `<p class="text-muted small mb-2">${p.brand}</p>` : "";
-    const img = p.image || "https://via.placeholder.com/400x300?text=No+image";
+  card() {
     return `
       <div class="col">
         <div class="card h-100">
-          <img class="card-img-top" src="${img}" alt="${p.name}">
+          <img class="card-img-top" src="{{image}}" alt="{{name}}">
           <div class="card-body d-flex flex-column">
-            <h3 class="h6 card-title mb-1">${p.name}</h3>
-            ${brand}
-            <p class="fw-semibold mb-3">${p.price} ${p.currency}</p>
-            <button class="btn btn-outline-primary mt-auto" data-id="${p.id}">
+            <h3 class="h6 card-title mb-1">{{name}}</h3>
+            {{#if brand}}<p class="text-muted small mb-2">{{brand}}</p>{{/if}}
+            <p class="fw-semibold mb-3">{{price}} {{currency}}</p>
+            <button class="btn btn-outline-primary mt-auto" data-id="{{id}}">
               Visa mer info
             </button>
           </div>
         </div>
       </div>
     `;
-  }
-
-  subBtn(key, label) {
-    const active = this.currentSub === key ? "active" : "";
-    return `<button type="button" class="btn btn-outline-secondary ${active}" data-sub="${key}">${label}</button>`;
   }
 
   pretty(type) {
