@@ -1,47 +1,50 @@
+// components/product-details.js
+// Visar detaljer för den valda produkten och hanterar knapparna "Tillbaka" och "Lägg till i kundvagn".
+
 class ShopProductDetails extends HTMLElement {
   constructor() {
     super();
+    // Använder Shadow DOM för att kapsla in komponentens innehåll och stil
     this.attachShadow({ mode: "open" });
-    this.product = null; // Lagrar den valda produkten
+    // Håller den aktuellt valda produkten
+    this.product = null;
   }
 
   connectedCallback() {
-    // Lägg till event-lyssnare för att ta emot den valda produkten
+    // Lyssnar på när en produkt valts i ShopProducts-komponenten
     document.addEventListener("product:selected", this.handleProductSelected.bind(this));
-    // Återge initialt tomt läge
+    // Renderar initialt tom vy
     this.render();
   }
 
   disconnectedCallback() {
-    // Ta bort event-lyssnare när komponenten tas bort
+    // Tar bort eventlyssnare om komponenten tas bort från DOM
     document.removeEventListener("product:selected", this.handleProductSelected.bind(this));
   }
 
+  // Tar emot vald produkt och uppdaterar vyn
   handleProductSelected(event) {
-    // Spara produkten från händelsedetaljerna
     this.product = event.detail.product;
-
-    // Rendera detaljerna
     this.render();
   }
 
   render() {
+    // Grundläggande HTML och stil som alltid inkluderas
     const html = `
       <link rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <style>
-        /* Dölj komponenten helt om ingen produkt är vald, 
-           men app-initializer hanterar det också via [hidden] på sektionen. */
         :host([hidden]) {
           display: none !important;
         }
+
         .product-image {
           max-width: 100%;
           height: auto;
           object-fit: contain;
         }
 
-        /* Button Overrides */
+        /* Svart knappstil som ersätter Bootstraps standardfärg */
         .btn-primary, .btn-outline-secondary {
           background-color: #111827 !important;
           color: #fff !important;
@@ -51,21 +54,22 @@ class ShopProductDetails extends HTMLElement {
           background-color: #000 !important;
           border-color: #000 !important;
         }
-
       </style>
     `;
 
+    // Om ingen produkt är vald – visa tom layout
     if (!this.product) {
-      // Tomt tillstånd (denna komponent är troligen dold av app-initializer)
       this.shadowRoot.innerHTML = html;
       return;
     }
 
-    // Konvertera priset till en snyggare siffra (antar att det är en sträng i din data)
+    // Säker formattering av priset (visas med två decimaler)
     const priceNum = parseFloat(this.product.price);
-    const formattedPrice = isNaN(priceNum) ? 'Pris ej specificerat' : `${priceNum.toFixed(2)} ${this.product.currency || 'SEK'}`;
-    
-    // Rendera produktdetaljer
+    const formattedPrice = isNaN(priceNum)
+      ? "Pris ej specificerat"
+      : `${priceNum.toFixed(2)} ${this.product.currency || "SEK"}`;
+
+    // Bygger HTML för produktens detaljer
     const detailsHtml = `
       <section class="card mb-4 shadow">
         <div class="card-body">
@@ -86,12 +90,13 @@ class ShopProductDetails extends HTMLElement {
               
               <ul class="list-group list-group-flush mb-4">
                 <li class="list-group-item">
-                  <strong>Pris:</strong> <span class="fw-bold fs-5">${priceNum.toFixed(2)} ${this.product.currency || 'SEK'}</span>
+                  <strong>Pris:</strong>
+                  <span class="fw-bold fs-5">${formattedPrice}</span>
                 </li>
                 <li class="list-group-item">
                   <strong>Kategori:</strong> ${this.product.product_type || 'Ej specificerad'}
                 </li>
-                 ${this.product.rating ? `<li class="list-group-item">
+                ${this.product.rating ? `<li class="list-group-item">
                   <strong>Betyg:</strong> ${this.product.rating.toFixed(1)} / 5.0
                 </li>` : ''}
               </ul>
@@ -105,35 +110,36 @@ class ShopProductDetails extends HTMLElement {
       </section>
     `;
 
+    // Renderar hela komponenten
     this.shadowRoot.innerHTML = html + detailsHtml;
     
-    // Bind "Tillbaka"-knappen
+    // "Tillbaka"-knapp: växlar tillbaka till produktlistan
     this.shadowRoot.getElementById("back-to-products").addEventListener("click", () => {
-        this.product = null; // Rensa vald produkt
-        this.render(); 
-        
-        // Skicka händelse som app-initializer lyssnar på för att växla vy
-        this.dispatchEvent(new CustomEvent("details:closed", {
-            bubbles: true,
-            composed: true
-        }));
+      this.product = null;
+      this.render();
+
+      // Skickar event så att app-initializer växlar vy
+      this.dispatchEvent(new CustomEvent("details:closed", {
+        bubbles: true,
+        composed: true
+      }));
     });
 
-    // Bind "Lägg till i kundvagn"-knappen
+    // "Lägg till i kundvagn"-knapp: skickar data till mini-cart (eller motsvarande)
     this.shadowRoot.getElementById("add-to-cart")?.addEventListener("click", () => {
-        // Dispatch the new 'AddedToCart' event that mini-cart.js listens for
-        window.dispatchEvent(new CustomEvent("AddedToCart", {
-            bubbles: true,
-            composed: true,
-            detail: { 
-              id: this.product.id,
-              title: this.product.name, // Map 'name' to 'title'
-              price: parseFloat(this.product.price),
-              image: this.product.image
-            }
-        }));
+      window.dispatchEvent(new CustomEvent("AddedToCart", {
+        bubbles: true,
+        composed: true,
+        detail: { 
+          id: this.product.id,
+          title: this.product.name,
+          price: parseFloat(this.product.price),
+          image: this.product.image
+        }
+      }));
     });
   }
 }
 
+// Registrerar komponenten som <shop-product-details>
 customElements.define("shop-product-details", ShopProductDetails);

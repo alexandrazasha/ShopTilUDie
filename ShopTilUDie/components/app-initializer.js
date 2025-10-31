@@ -1,9 +1,13 @@
 // components/app-initializer.js
+// Initierar sidans layout och hanterar vybyte mellan produktlista och produktdetaljer.
+
 document.addEventListener("DOMContentLoaded", () => {
+  // Hämtar huvudtaggar i DOM
   const main = document.querySelector("main");
   const body = document.querySelector("body");
 
-  // --- Layout (bootstrap-grid, centrerad) ---
+  // Skapar grundlayouten med Bootstrap-container och rader
+  // Görs bara om kategorikomponenten inte redan finns
   if (!main.querySelector("shop-categories")) {
     main.innerHTML = `
       <div class="container">
@@ -25,26 +29,30 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  // --- Elementreferenser ---
+  // Hämtar sektionerna för att kunna växla mellan dem
   const productsView = document.getElementById("products-view");
   const detailsView = document.getElementById("product-details-view");
 
-  // --- Vyhantering ---
-  // När en produkt väljs: visa detaljer, dölj lista
+  // Lyssnar på händelsen "product:selected" som triggas från shop-products
+  // Döljer produktlistan och visar detaljvyn när en produkt väljs
   document.addEventListener("product:selected", () => {
     if (productsView && detailsView) {
       productsView.setAttribute("hidden", "");
       detailsView.removeAttribute("hidden");
     }
+    // Scrollar upp till toppen för att visa produktdetaljerna direkt
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  // När detaljvyn stängs (event från product-details.js)
+  // Lyssnar på händelsen "details:closed" som triggas från product-details
+  // Visar produktlistan igen när användaren stänger detaljvyn
   document.addEventListener("details:closed", () => {
     if (productsView && detailsView) {
       productsView.removeAttribute("hidden");
       detailsView.setAttribute("hidden", "");
     }
+    // Scrollar upp till toppen även här för konsekvent beteende
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });
+

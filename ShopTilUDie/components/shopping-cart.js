@@ -1,24 +1,22 @@
-// shopping-cart.js —  mini-kundvagn (localStorage)
-// - Öppnas/stängs via kundvagnsikonen (#mini-cart-link)
-// - Stängs endast när man klickar utanför panelen
-// - + / − / × uppdaterar utan att stänga panelen
-// - "Gå till kassan" knappen visar bara men har ingen navigering
+// shopping-cart.js — mini-kundvagn baserad på localStorage
+// Hanterar skapande/visning av panel, läs/skriv av varor, badge-uppdatering och knapphändelser.
 
 (() => {
-  const KEY = 'shopping-cart';      // localStorage-nyckel
-  const LINK_ID = 'mini-cart-link'; // ikon i navbaren
+  // Konstanter för localStorage-nyckel, länk/id till ikon och panel, samt badge-selektor
+  const KEY = 'shopping-cart';
+  const LINK_ID = 'mini-cart-link';
   const PANEL_ID = 'mini-cart-panel';
   const BADGE_SEL = '.cart-counter';
 
-// Funktioner som sköter lagringen och prisformat
-// read() läser kundvagnen från localStorage
-// write() sparar och uppdaterar kundvagnen
-// fmt() gör om siffror till SEK
+  // Lagring och formatering:
+  // read() hämtar varor från localStorage (tom array vid fel)
+  // write() sparar varor och uppdaterar UI (badge + lista)
+  // fmt() formaterar belopp till SEK
   const read = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
   const write = (items) => { localStorage.setItem(KEY, JSON.stringify(items)); updateBadge(); renderList(); };
   const fmt = n => new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK' }).format(n);
 
-  // --- Skapar panelen för kundvagnen en gång ---
+  // Skapar panelen för mini-kundvagnen vid behov (endast en gång)
   const ensurePanel = () => {
     if (document.getElementById(PANEL_ID)) return;
 
@@ -39,6 +37,7 @@
       display: 'none'
     });
 
+    // Grundlayout för panelen: header, varulista, total och "kassa"-knapp
     panel.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="m-0">Kundvagn</h6>
@@ -57,21 +56,20 @@
 
     document.body.appendChild(panel);
 
-    // Gör så att klick inuti kundvagnspanelen inte stänger den
-   // (annars tror sidan att man klickat utanför)
+    // Klick inuti panelen ska inte bubbla upp och stänga panelen
     panel.addEventListener('click', e => e.stopPropagation());
 
-    // Töm kundvagn
+    // Tömmer kundvagnen
     panel.querySelector('#mini-cart-clear').addEventListener('click', () => write([]));
 
-    // "Gå till kassan" – ingen navigering
+    // "Gå till kassan" visar en info-ruta (ingen faktisk navigering i denna inlämning)
     panel.querySelector('#mini-cart-checkout').addEventListener('click', (e) => {
       e.preventDefault();
       alert('Kassan ingår inte i denna inlämning');
     });
   };
 
-  // --- Badge (antal i kundvagn) ---
+  // Uppdaterar badge med totalt antal artiklar (summerar qty)
   const updateBadge = () => {
     const badge = document.querySelector(BADGE_SEL);
     if (!badge) return;
@@ -80,7 +78,7 @@
     badge.style.display = count > 0 ? 'inline-block' : 'none';
   };
 
-  // --- Lista varor i panelen ---
+  // Renderar varulistan i panelen samt totalbelopp
   const renderList = () => {
     const box = document.getElementById('mini-cart-items');
     const totalEl = document.getElementById('mini-cart-total');
@@ -88,12 +86,14 @@
 
     const items = read();
 
+    // Tomt läge när inga varor finns
     if (!items.length) {
       box.innerHTML = `<div class="text-muted">Inget i kundvagnen ännu.</div>`;
       totalEl.textContent = fmt(0);
       return;
     }
 
+    // Bygger varje rad: bild, titel, pris, qty-knappar och ta bort-knapp
     box.innerHTML = items.map((it, i) => `
       <div class="d-flex align-items-center gap-2 border rounded p-2">
         <img src="${it.image || ''}" alt="" style="width:48px;height:48px;object-fit:contain;background:#fff">
@@ -110,10 +110,11 @@
       </div>
     `).join('');
 
+    // Beräknar totalbeloppet
     const total = items.reduce((sum, it) => sum + (it.price || 0) * (it.qty || 1), 0);
     totalEl.textContent = fmt(total);
 
-    // Knappar: + / − / ×
+    // Knappar för att öka/minska/ta bort utan att stänga panelen
     box.querySelectorAll('button[data-act]').forEach(btn => {
       btn.addEventListener('click', () => {
         const i = +btn.dataset.i;
@@ -125,12 +126,12 @@
         if (act === 'dec') arr[i].qty = Math.max(1, (arr[i].qty || 1) - 1);
         if (act === 'del') arr.splice(i, 1);
 
-        write(arr); // uppdatera + rita om + badge
+        write(arr); // sparar och uppdaterar badge + lista
       });
     });
   };
 
-  // --- Visa/dölj panel ---
+  // Visar/döljer panelen samt toggle-läge
   const showPanel = () => { ensurePanel(); document.getElementById(PANEL_ID).style.display = 'block'; };
   const hidePanel = () => { const p = document.getElementById(PANEL_ID); if (p) p.style.display = 'none'; };
   const togglePanel = () => {
@@ -139,14 +140,14 @@
     p.style.display = (p.style.display === 'block') ? 'none' : 'block';
   };
 
-  // --- Init ---
+  // Init: skapar panelen, synkar badge/lista och kopplar händelser
   document.addEventListener('DOMContentLoaded', () => {
     ensurePanel();
     updateBadge();
     renderList();
 
-    // Ikon i navbar → öppna/stäng panelen
-    // We need to listen on the body because the navbar is a web component and its content might not be ready immediately.
+    // Klick på kundvagnsikonen i navbaren öppnar/stänger panelen
+    // Lyssnar på body eftersom navbaren kan vara ett web component som laddas senare
     document.body.addEventListener('click', (e) => {
       if (e.target.closest(`#${LINK_ID}`)) {
         e.preventDefault();
@@ -155,7 +156,7 @@
       }
     });
 
-    // Stäng bara när man klickar UTANFÖR panelen
+    // Stänger panelen när man klickar utanför den (klick inuti stoppas tidigare)
     document.addEventListener('click', (e) => {
       const panel = document.getElementById(PANEL_ID);
       if (!panel || panel.style.display === 'none') return;
@@ -166,13 +167,13 @@
       if (!insidePanel) hidePanel();
     }, true);
 
-    // Synk mellan flikar
+    // Synkronisering mellan flikar/fönster: uppdatera UI när localStorage ändras
     window.addEventListener('storage', (e) => {
       if (e.key === KEY) { updateBadge(); renderList(); }
     });
   });
 
-  // Lägg till produkt från product-details.js
+  // Tar emot produkter från produktdetalj-komponenten och lägger i kundvagnen
   window.addEventListener('AddedToCart', (e) => {
     const { id, title, price, image, quantity = 1 } = e.detail || {};
     const arr = read();
@@ -180,7 +181,6 @@
     if (i >= 0) arr[i].qty = (arr[i].qty || 1) + quantity;
     else arr.push({ id, title, price, image, qty: quantity });
     write(arr);
-    showPanel(); // öppna panelen direkt
+    showPanel(); // öppnar panelen direkt efter tillägg
   });
 })();
-        

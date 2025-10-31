@@ -1,10 +1,13 @@
 // components/products.js
-// Uppdaterad version med svart knapp-styling
+// Hämtar och visar produkter för vald kategori i en Bootstrap-baserad kortlayout.
 
 class ShopProducts extends HTMLElement {
   constructor() {
     super();
+    // Aktiverar Shadow DOM för att kapsla in komponenten visuellt
     this.attachShadow({ mode: "open" });
+
+    // API-url och interna variabler
     this.api = "https://dummyjson.com/products/category/";
     this.currentType = null;
     this.allProducts = [];
@@ -13,19 +16,17 @@ class ShopProducts extends HTMLElement {
   }
 
   connectedCallback() {
-    // Visa tom vy tills användaren valt kategori
+    // Visar tom sektion tills användaren valt kategori
     this.renderEmpty();
 
-    // Lyssna på kategori-val
+    // Lyssnar på eventet "category:selected" och laddar vald kategori
     document.addEventListener("category:selected", (e) => {
       const { product_type } = e.detail;
       this.loadByCategory(product_type);
     });
   }
 
-  // =======================
-  // API-HÄMTNING
-  // =======================
+  // Hämtar produkter från API baserat på vald kategori
   async loadByCategory(type) {
     this.currentType = type;
     this.currentSub = "alla";
@@ -37,6 +38,7 @@ class ShopProducts extends HTMLElement {
       const payload = await res.json();
       const raw = payload.products || [];
 
+      // Mappning till enklare objekt med tydliga fält
       this.allProducts = raw.map((p) => ({
         id: p.id,
         name: p.title,
@@ -49,25 +51,24 @@ class ShopProducts extends HTMLElement {
         product_type: p.category,
       }));
 
+      // Visar alla produkter initialt
       this.viewProducts = [...this.allProducts];
       this.renderList();
     } catch (err) {
+      // Visar felmeddelande vid problem med hämtningen
       this.renderError(err);
     }
   }
 
-  // =======================
-  // RENDER-METODER
-  // =======================
+  // Visar tom sektion innan någon kategori är vald
   renderEmpty() {
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-      <section>
-        <!-- Tom vy tills kategori valts -->
-      </section>
+      <section></section>
     `;
   }
 
+  // Visar laddningsstatus medan produkter hämtas
   renderLoading() {
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -81,6 +82,7 @@ class ShopProducts extends HTMLElement {
     `;
   }
 
+  // Visar felmeddelande om något går fel vid API-anrop
   renderError(err) {
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -92,6 +94,7 @@ class ShopProducts extends HTMLElement {
     `;
   }
 
+  // Renderar produktlistan utifrån aktuell kategori och filter
   renderList() {
     const context = {
       prettyCategory: this.pretty(this.currentType),
@@ -106,6 +109,7 @@ class ShopProducts extends HTMLElement {
       ]
     };
 
+    // Handlebars-mall för att bygga HTML dynamiskt
     const html = `
       <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <style>
@@ -115,27 +119,26 @@ class ShopProducts extends HTMLElement {
         .card img { height: 180px; object-fit: cover; }
         .btn { border-radius: 10px; }
 
-        /* Svarta knappar (överskugga bootstrap) */
+        /* Svart knappstil som ersätter Bootstraps blå */
         .btn-outline-primary,
-        .btn-outline-secondary{
+        .btn-outline-secondary {
           color:#111827 !important;
           border-color:#111827 !important;
           background: transparent !important;
         }
         .btn-outline-primary:hover,
-        .btn-outline-secondary:hover{
+        .btn-outline-secondary:hover {
           color:#fff !important;
           background:#111827 !important;
           border-color:#111827 !important;
         }
 
-        /* (om någon badge dyker upp här i framtiden – håll dem svarta) */
-        .badge{
+        .badge {
           background:#111827;
           color:#fff;
           border:none;
         }
-        .badge:hover{ background:#000; }
+        .badge:hover { background:#000; }
       </style>
       <section>
         <div class="d-flex align-items-center justify-content-between mb-2">
@@ -163,18 +166,14 @@ class ShopProducts extends HTMLElement {
     const template = Handlebars.compile(html);
     this.shadowRoot.innerHTML = template(context);
 
-    // Bild-fallback
+    // Hanterar felaktiga bilder genom fallback
     this.shadowRoot.querySelectorAll(".card-img-top").forEach((img) => {
-      img.addEventListener(
-        "error",
-        () => {
-          img.src = "https://via.placeholder.com/400x300?text=No+image";
-        },
-        { once: true }
-      );
+      img.addEventListener("error", () => {
+        img.src = "https://via.placeholder.com/400x300?text=No+image";
+      }, { once: true });
     });
 
-    // Visa mer info-knapp
+    // Hanterar "Visa mer info"-knappar och skickar valt produktobjekt
     this.shadowRoot.querySelectorAll("button[data-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = Number(btn.getAttribute("data-id"));
@@ -193,7 +192,7 @@ class ShopProducts extends HTMLElement {
       });
     });
 
-    // Underfilter
+    // Aktiverar underfilterknappar (endast för makeup)
     if (context.showSub) {
       this.shadowRoot.querySelectorAll("[data-sub]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -203,9 +202,7 @@ class ShopProducts extends HTMLElement {
     }
   }
 
-  // =======================
-  // HJÄLPMETODER
-  // =======================
+  // Returnerar HTML-strukturen för varje produktkort
   card() {
     return `
       <div class="col">
@@ -224,6 +221,7 @@ class ShopProducts extends HTMLElement {
     `;
   }
 
+  // Översätter API-kategorier till svenska namn
   pretty(type) {
     switch (type) {
       case "beauty": return "Makeup";
@@ -233,6 +231,7 @@ class ShopProducts extends HTMLElement {
     }
   }
 
+  // Filtrerar makeup-produkter efter underkategori
   applySub(key) {
     this.currentSub = key;
     const t = (s) => (s || "").toLowerCase();
@@ -253,8 +252,11 @@ class ShopProducts extends HTMLElement {
       );
     }
 
+    // Renderar om listan efter filtrering
     this.renderList();
   }
 }
 
+// Registrerar komponenten som <shop-products>
 customElements.define("shop-products", ShopProducts);
+

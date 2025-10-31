@@ -1,17 +1,20 @@
 // components/categories.js
-// Uppdaterad version med Pexels-bilder i card-layout
+// Visar tillgängliga produktkategorier i kortlayout med bilder från Pexels.
 
 class ShopCategories extends HTMLElement {
   constructor() {
     super();
+    // Använder Shadow DOM för att kapsla in stil och innehåll
     this.attachShadow({ mode: "open" });
   }
 
   connectedCallback() {
+    // När elementet läggs till i DOM anropas render()
     this.render();
   }
 
   render() {
+    // Lista över kategorier med etikett, typ och bild-URL
     this.categories = [
       {
         label: "Makeup",
@@ -30,6 +33,7 @@ class ShopCategories extends HTMLElement {
       },
     ];
 
+    // Renderar HTML och CSS direkt i shadow root
     this.shadowRoot.innerHTML = `
       <link rel="stylesheet"
             href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -87,7 +91,7 @@ class ShopCategories extends HTMLElement {
           align-items: center;
         }
 
-        /* Svart badge (ersätter Bootstrap-blå) */
+        /* Svart badge istället för Bootstraps standardfärg */
         .badge {
           background: #111827;
           color: #fff;
@@ -116,7 +120,6 @@ class ShopCategories extends HTMLElement {
                 </div>
                 <div class="label">
                   ${c.label}
-                  <!-- Ta bort text-bg-primary så vår svarta badge gäller -->
                   <span class="badge">Välj</span>
                 </div>
               </div>
@@ -126,15 +129,16 @@ class ShopCategories extends HTMLElement {
       </section>
     `;
 
-    // Event: skicka valt kategori-typ till produkter
+    // Lägger till klickhändelse för varje kategori
+    // Skickar eventet "category:selected" med den valda typen
     this.shadowRoot.querySelectorAll(".cat").forEach(btn => {
       btn.addEventListener("click", () => {
         const product_type = btn.getAttribute("data-type");
         this.dispatchEvent(
           new CustomEvent("category:selected", {
-            bubbles: true,
-            composed: true,
-            detail: { product_type },
+            bubbles: true,     // Gör så eventet kan nå dokumentnivån
+            composed: true,    // Tillåter att det passerar Shadow DOM-gränser
+            detail: { product_type }, // Skickar vilken kategori som valts
           })
         );
       });
@@ -142,4 +146,6 @@ class ShopCategories extends HTMLElement {
   }
 }
 
+// Registrerar komponenten som <shop-categories>
 customElements.define("shop-categories", ShopCategories);
+
