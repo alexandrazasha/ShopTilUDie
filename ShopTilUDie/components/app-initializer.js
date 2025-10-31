@@ -1,43 +1,54 @@
+// components/app-initializer.js
 document.addEventListener("DOMContentLoaded", () => {
   const main = document.querySelector("main");
+
+  // --- Layout (bootstrap-grid, centrerad) ---
   if (!main.querySelector("shop-categories")) {
     main.innerHTML = `
-      <section id="products-view" class="mb-4">
-        <shop-categories></shop-categories>
-        <shop-products></shop-products>
-      </section>
-      <section id="product-details-view" class="mb-4" hidden>
-        <shop-product-details></shop-product-details>
-      </section>
-      <section class="mb-4"> 
-        <shop-shopping-cart></shop-shopping-cart>
-      </section>
+      <div class="container">
+        <div class="row justify-content-center g-4">
+          <div class="col-12 col-lg-10">
+            <!-- Sektion för produkter och kategorier -->
+            <section id="products-view" class="mb-4">
+              <shop-categories></shop-categories>
+              <shop-products></shop-products>
+            </section>
+
+            <!-- Sektion för produktdetaljer (visas när man klickar på produkt) -->
+            <section id="product-details-view" class="mb-4" hidden>
+              <shop-product-details></shop-product-details>
+            </section>
+
+            <!-- Kundvagn -->
+            <section class="mb-4">
+              <shop-shopping-cart></shop-shopping-cart>
+            </section>
+          </div>
+        </div>
+      </div>
     `;
   }
 
-  // Select elements AFTER they have been added to the DOM
+  // --- Elementreferenser ---
   const productsView = document.getElementById("products-view");
   const detailsView = document.getElementById("product-details-view");
 
   // --- Vyhantering ---
-
-  // Lyssnar på när en produkt väljs (från products.js)
+  // När en produkt väljs: visa detaljer, dölj lista
   document.addEventListener("product:selected", () => {
-    // Dölj produktlistan och visa detaljvyn
     if (productsView && detailsView) {
       productsView.setAttribute("hidden", "");
       detailsView.removeAttribute("hidden");
     }
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Skrolla till toppen
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  // Lyssnar på när detaljvyn stängs (från product-details.js)
+  // När detaljvyn stängs (event från product-details.js)
   document.addEventListener("details:closed", () => {
-    // Visa produktlistan och dölj detaljvyn
     if (productsView && detailsView) {
       productsView.removeAttribute("hidden");
       detailsView.setAttribute("hidden", "");
     }
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Skrolla till toppen
+    window.scrollTo({ top: 0, behavior: "smooth" });
   });
 });

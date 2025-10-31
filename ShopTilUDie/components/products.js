@@ -1,5 +1,5 @@
-// Hämtar produkter från DummyJSON utifrån vald kategori.
-// Har ett enkelt under-filter när kategori = "beauty": Bas / Ögon / Läppar.
+// components/products.js
+// Uppdaterad version med svart knapp-styling
 
 class ShopProducts extends HTMLElement {
   constructor() {
@@ -7,22 +7,25 @@ class ShopProducts extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.api = "https://dummyjson.com/products/category/";
     this.currentType = null;
-    this.allProducts = [];   // ofiltrerade från API
-    this.viewProducts = [];  // det som visas just nu
-    this.currentSub = "alla"; // underfilter för makeup
+    this.allProducts = [];
+    this.viewProducts = [];
+    this.currentSub = "alla";
   }
 
   connectedCallback() {
-    // Grundvy
-    this.renderSkeleton();
+    // Visa tom vy tills användaren valt kategori
+    this.renderEmpty();
 
-    // Lyssna på val av kategori från <shop-categories>
+    // Lyssna på kategori-val
     document.addEventListener("category:selected", (e) => {
       const { product_type } = e.detail;
       this.loadByCategory(product_type);
     });
   }
 
+  // =======================
+  // API-HÄMTNING
+  // =======================
   async loadByCategory(type) {
     this.currentType = type;
     this.currentSub = "alla";
@@ -31,11 +34,10 @@ class ShopProducts extends HTMLElement {
     try {
       const res = await fetch(this.api + encodeURIComponent(type));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const payload = await res.json(); // { products: [...] }
+      const payload = await res.json();
       const raw = payload.products || [];
 
-      // Normalisera till vårt "kontrakt"
-      this.allProducts = raw.map(p => ({
+      this.allProducts = raw.map((p) => ({
         id: p.id,
         name: p.title,
         brand: p.brand || "",
@@ -44,10 +46,9 @@ class ShopProducts extends HTMLElement {
         image: p.thumbnail,
         description: p.description || "",
         rating: p.rating ?? null,
-        product_type: p.category // "beauty", "fragrances", "skincare"
+        product_type: p.category,
       }));
 
-      // Första vy = alla
       this.viewProducts = [...this.allProducts];
       this.renderList();
     } catch (err) {
@@ -55,104 +56,136 @@ class ShopProducts extends HTMLElement {
     }
   }
 
-  // --- RENDER HELPERS ---
-
-  renderSkeleton() {
-    const html = `
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  // =======================
+  // RENDER-METODER
+  // =======================
+  renderEmpty() {
+    this.shadowRoot.innerHTML = `
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <section>
-        <div class="d-flex align-items-center justify-content-between mb-2">
-          <h2 class="h4 mb-0">Produkter</h2>
-          <span class="text-muted small">Välj en kategori</span>
-        </div>
-        <div id="subfilters" class="mb-3"></div>
-        <div id="grid" class="row g-3"></div>
+        <!-- Tom vy tills kategori valts -->
       </section>
     `;
-    this.shadowRoot.innerHTML = html;
   }
 
   renderLoading() {
-    const html = `
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    this.shadowRoot.innerHTML = `
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <section>
         <div class="d-flex align-items-center justify-content-between mb-3">
           <h2 class="h4 mb-0">Produkter</h2>
-          <span class="text-muted small">Laddar…</span>
+          <span class="text-muted small">Laddar...</span>
         </div>
         <div class="alert alert-info">Hämtar produkter…</div>
       </section>
     `;
-    this.shadowRoot.innerHTML = html;
   }
 
   renderError(err) {
-    const html = `
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    this.shadowRoot.innerHTML = `
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
       <section>
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h2 class="h4 mb-0">Produkter</h2>
+        <div class="alert alert-danger">
+          Kunde inte hämta produkter (${err.message})
         </div>
-        <div class="alert alert-danger">Kunde inte hämta produkter (${err.message}).</div>
       </section>
     `;
-    this.shadowRoot.innerHTML = html;
   }
 
   renderList() {
-    // Topprad + ev. underfilter (bara när makeup)
     const showSub = this.currentType === "beauty";
     const html = `
-      <link rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+      <style>
+        h2 { font-size: 1.5rem; font-weight: 600; }
+        .card { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.08); transition: 0.15s; }
+        .card img { height: 180px; object-fit: cover; }
+        .btn { border-radius: 10px; }
+
+        /* Svarta knappar (överskugga bootstrap) */
+        .btn-outline-primary,
+        .btn-outline-secondary{
+          color:#111827 !important;
+          border-color:#111827 !important;
+          background: transparent !important;
+        }
+        .btn-outline-primary:hover,
+        .btn-outline-secondary:hover{
+          color:#fff !important;
+          background:#111827 !important;
+          border-color:#111827 !important;
+        }
+
+        /* (om någon badge dyker upp här i framtiden – håll dem svarta) */
+        .badge{
+          background:#111827;
+          color:#fff;
+          border:none;
+        }
+        .badge:hover{ background:#000; }
+      </style>
       <section>
         <div class="d-flex align-items-center justify-content-between mb-2">
-          <h2 class="h4 mb-0">
-            Produkter – ${this.pretty(this.currentType)} 
-          </h2>
+          <h2 class="mb-0">Produkter – ${this.pretty(this.currentType)}</h2>
           <span class="text-muted small">${this.viewProducts.length} st</span>
         </div>
 
-        ${showSub ? `
+        ${
+          showSub
+            ? `
           <div class="mb-3">
             <div class="btn-group" role="group" aria-label="Underkategorier">
-              ${this.subBtn("alla","Alla")}
-              ${this.subBtn("bas","Bas")}
-              ${this.subBtn("ogon","Ögon")}
-              ${this.subBtn("lappar","Läppar")}
+              ${this.subBtn("alla", "Alla")}
+              ${this.subBtn("bas", "Bas")}
+              ${this.subBtn("ogon", "Ögon")}
+              ${this.subBtn("lappar", "Läppar")}
             </div>
           </div>
-        ` : ""}
+        `
+            : ""
+        }
 
         <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-          ${this.viewProducts.map(p => this.card(p)).join("")}
+          ${this.viewProducts.map((p) => this.card(p)).join("")}
         </div>
       </section>
     `;
     this.shadowRoot.innerHTML = html;
 
-    // Bind knappar: "Visa mer info"
-    this.shadowRoot.querySelectorAll("button[data-id]").forEach(btn => {
+    // Bild-fallback
+    this.shadowRoot.querySelectorAll(".card-img-top").forEach((img) => {
+      img.addEventListener(
+        "error",
+        () => {
+          img.src = "https://via.placeholder.com/400x300?text=No+image";
+        },
+        { once: true }
+      );
+    });
+
+    // Visa mer info-knapp
+    this.shadowRoot.querySelectorAll("button[data-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const id = Number(btn.getAttribute("data-id"));
-        const product = this.viewProducts.find(p => p.id === id)
-                      || this.allProducts.find(p => p.id === id);
+        const product =
+          this.viewProducts.find((p) => p.id === id) ||
+          this.allProducts.find((p) => p.id === id);
         if (product) {
-          this.dispatchEvent(new CustomEvent("product:selected", {
-            bubbles: true,
-            composed: true,
-            detail: { product }
-          }));
+          this.dispatchEvent(
+            new CustomEvent("product:selected", {
+              bubbles: true,
+              composed: true,
+              detail: { product },
+            })
+          );
         }
       });
     });
 
-    // Bind underfilter (om makeup)
+    // Underfilter
     if (showSub) {
-      this.shadowRoot.querySelectorAll("[data-sub]").forEach(btn => {
+      this.shadowRoot.querySelectorAll("[data-sub]").forEach((btn) => {
         btn.addEventListener("click", () => {
           this.applySub(btn.getAttribute("data-sub"));
         });
@@ -160,21 +193,20 @@ class ShopProducts extends HTMLElement {
     }
   }
 
-  // --- UI småhjälpare ---
-
+  // =======================
+  // HJÄLPMETODER
+  // =======================
   card(p) {
-    const price = p.price;
     const brand = p.brand ? `<p class="text-muted small mb-2">${p.brand}</p>` : "";
     const img = p.image || "https://via.placeholder.com/400x300?text=No+image";
     return `
       <div class="col">
         <div class="card h-100">
-          <img class="card-img-top" src="${img}" alt="${p.name}"
-               onerror="this.src='https://via.placeholder.com/400x300?text=No+image'">
+          <img class="card-img-top" src="${img}" alt="${p.name}">
           <div class="card-body d-flex flex-column">
             <h3 class="h6 card-title mb-1">${p.name}</h3>
             ${brand}
-            <p class="fw-semibold mb-3">${price} ${p.currency}</p>
+            <p class="fw-semibold mb-3">${p.price} ${p.currency}</p>
             <button class="btn btn-outline-primary mt-auto" data-id="${p.id}">
               Visa mer info
             </button>
@@ -198,8 +230,6 @@ class ShopProducts extends HTMLElement {
     }
   }
 
-  // --- Underfilterlogik för makeup ---
-
   applySub(key) {
     this.currentSub = key;
     const t = (s) => (s || "").toLowerCase();
@@ -207,20 +237,19 @@ class ShopProducts extends HTMLElement {
     if (key === "alla") {
       this.viewProducts = [...this.allProducts];
     } else if (key === "bas") {
-      this.viewProducts = this.allProducts.filter(p =>
+      this.viewProducts = this.allProducts.filter((p) =>
         /foundation|primer|powder|conceal/i.test(p.name)
       );
     } else if (key === "ogon") {
-      this.viewProducts = this.allProducts.filter(p =>
+      this.viewProducts = this.allProducts.filter((p) =>
         /mascara|eyeshadow|liner|brow/i.test(p.name)
       );
     } else if (key === "lappar") {
-      this.viewProducts = this.allProducts.filter(p =>
+      this.viewProducts = this.allProducts.filter((p) =>
         /lip|gloss|stick/i.test(t(p.name))
       );
     }
 
-    // Rendera om listan med uppdaterad knapp-status
     this.renderList();
   }
 }

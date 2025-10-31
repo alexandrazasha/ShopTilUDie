@@ -1,0 +1,49 @@
+:root{
+  --brand:#111827; --muted:#6b7280; --bg:#f7f7f9;
+}
+html,body{ background:var(--bg); color:var(--brand); }
+a{ color:var(--brand); text-decoration:none; }
+a:hover{ color:#0d6efd; text-decoration:underline; }
+.container{ max-width:1200px; }
+main{ padding-top:1rem; }
+
+/* --- Färgtema: svart & neutralt --- */
+
+/* Länkar */
+a, a:visited {
+  color: #111827; /* mörkgrå/svart */
+  text-decoration: none;
+}
+a:hover {
+  color: #000; /* helsvart vid hover */
+  text-decoration: underline;
+}
+
+/* Knappar (om du använder Bootstrap-knappar någonstans) */
+.btn, .badge.text-bg-primary {
+  background-color: #111827 !important; /* svart bakgrund */
+  color: #fff !important;               /* vit text */
+  border: none !important;
+}
+.btn:hover, .badge.text-bg-primary:hover {
+  background-color: #000 !important;    /* ännu mörkare vid hover */
+}
+
+/* Rubriker & text */
+h1, h2, h3, h4, h5, h6 {
+  color: #111827;
+  font-weight: 700;
+}
+
+/* Ikoner eller sekundär text */
+.text-muted {
+  color: #6b7280 !important;
+}
+
+/* Eventuella länkar i navbaren */
+.navbar .nav-link {
+  color: #111827 !important;
+}
+.navbar .nav-link:hover {
+  color: #000 !important;
+}
