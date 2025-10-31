@@ -61,7 +61,7 @@
     // Tömmer kundvagnen
     panel.querySelector('#mini-cart-clear').addEventListener('click', () => write([]));
 
-    // "Gå till kassan" visar en info-ruta (ingen faktisk navigering i denna inlämning)
+    // "Gå till kassan" visar en info-ruta (ingen faktisk navigering)
     panel.querySelector('#mini-cart-checkout').addEventListener('click', (e) => {
       e.preventDefault();
       alert('Kassan ingår inte i denna inlämning');
