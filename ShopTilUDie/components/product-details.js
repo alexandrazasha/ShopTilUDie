@@ -1,4 +1,3 @@
-// components/product-details.js
 // Visar detaljer för den valda produkten och hanterar knapparna "Tillbaka" och "Lägg till i kundvagn".
 
 class ShopProductDetails extends HTMLElement {

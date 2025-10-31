@@ -1,4 +1,3 @@
-// components/categories.js
 // Visar tillgängliga produktkategorier i kortlayout med bilder från Pexels.
 
 class ShopCategories extends HTMLElement {

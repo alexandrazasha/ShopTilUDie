@@ -1,4 +1,3 @@
-// components/app-initializer.js
 // Initierar sidans layout och hanterar vybyte mellan produktlista och produktdetaljer.
 
 document.addEventListener("DOMContentLoaded", () => {

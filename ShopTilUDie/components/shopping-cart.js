@@ -1,4 +1,3 @@
-// shopping-cart.js — mini-kundvagn baserad på localStorage
 // Hanterar skapande/visning av panel, läs/skriv av varor, badge-uppdatering och knapphändelser.
 
 (() => {

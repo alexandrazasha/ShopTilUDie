@@ -1,5 +1,4 @@
-// components/navbar.js
-// Skapar en elegant centrerad navbar med Playfair Display-typsnitt och svart färgtema.
+// Skapar en centrerad navbar med Playfair Display-typsnitt och svart färgtema.
 // Innehåller länkar till olika sektioner samt en kundvagnsikon som visar badge med antal varor.
 
 class ShopNavbar extends HTMLElement {

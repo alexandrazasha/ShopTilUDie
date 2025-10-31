@@ -1,4 +1,3 @@
-// components/products.js
 // Hämtar och visar produkter för vald kategori i en Bootstrap-baserad kortlayout.
 
 class ShopProducts extends HTMLElement {
